@@ -79,6 +79,15 @@ class PredictionResponse(BaseModel):
     predicted_vote_share_clipped: float
 
 
+@app.get("/")
+def root():
+    return {
+        "service": "NL MVP Vote-Share Predictor",
+        "docs": "/docs",
+        "endpoints": ["/health", "/info", "/predict"],
+    }
+
+
 @app.get("/health")
 def health():
     if ARTIFACT is None:
