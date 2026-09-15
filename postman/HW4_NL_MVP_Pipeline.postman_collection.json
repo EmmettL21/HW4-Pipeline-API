@@ -1,0 +1,254 @@
+{
+  "info": {
+    "_postman_id": "6f2a1d3e-8b4c-4a2f-9d1e-2c7f5b3a9e10",
+    "name": "HW4 - NL MVP Vote-Share Pipeline API",
+    "description": "Covers the deployed Modal API: health check, pipeline info, a valid prediction (200), and invalid predictions (422). Set the `base_url` collection variable to the live Modal URL before running (defaults to the deployed instance).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Response time is reasonable (<10s, allows for Modal cold start)', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(10000);",
+          "});",
+          "",
+          "pm.test('Content-Type is application/json', function () {",
+          "    pm.response.to.have.header('Content-Type');",
+          "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://emmettl21--nl-mvp-pipeline-fastapi-app.modal.run",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Info",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Reports status ok', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('ok');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Pipeline Info",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Describes the fitted artifact', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.target).to.eql('vote_share');",
+                  "    pm.expect(json.stat_cols).to.be.an('array').that.is.not.empty;",
+                  "    pm.expect(json.training_years).to.be.an('array').that.is.not.empty;",
+                  "    pm.expect(json.n_train_rows).to.be.a('number').above(0);",
+                  "});",
+                  "",
+                  "pm.test('Metadata includes steps and pinned sklearn version', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.metadata).to.have.property('sklearn_version');",
+                  "    pm.expect(json.metadata).to.have.property('built_at');",
+                  "    pm.expect(json.metadata.steps).to.include('season_adjust');",
+                  "    pm.expect(json.metadata.steps).to.include('regressor');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/info",
+              "host": ["{{base_url}}"],
+              "path": ["info"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Predict",
+      "item": [
+        {
+          "name": "Predict - Valid (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns a numeric predicted vote share', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.predicted_vote_share).to.be.a('number');",
+                  "});",
+                  "",
+                  "pm.test('Clipped vote share is bounded to [0, 1]', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.predicted_vote_share_clipped).to.be.within(0, 1);",
+                  "});",
+                  "",
+                  "pm.test('Echoes back the submitted year and player_name', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.year).to.eql(2025);",
+                  "    pm.expect(json.player_name).to.eql('Test Slugger');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"year\": 2025,\n  \"WAR\": 9.5,\n  \"R\": 130,\n  \"H\": 190,\n  \"HR\": 45,\n  \"RBI\": 120,\n  \"SB\": 20,\n  \"BB\": 100,\n  \"batting_avg\": 0.320,\n  \"onbase_perc\": 0.430,\n  \"slugging_perc\": 0.620,\n  \"onbase_plus_slugging\": 1.050,\n  \"player_name\": \"Test Slugger\",\n  \"team\": \"ATL\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/predict",
+              "host": ["{{base_url}}"],
+              "path": ["predict"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Predict - Invalid: out-of-bounds + missing field (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 422', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "pm.test('Validation error flags the offending fields', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.detail).to.be.an('array');",
+                  "    const locs = json.detail.map((d) => d.loc[d.loc.length - 1]);",
+                  "    pm.expect(locs).to.include('HR');",
+                  "    pm.expect(locs).to.include('BB');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"year\": 2025,\n  \"WAR\": 9.5,\n  \"R\": 130,\n  \"H\": 190,\n  \"HR\": 999,\n  \"RBI\": 120,\n  \"SB\": 20,\n  \"batting_avg\": 0.320,\n  \"onbase_perc\": 0.430,\n  \"slugging_perc\": 0.620,\n  \"onbase_plus_slugging\": 1.050\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/predict",
+              "host": ["{{base_url}}"],
+              "path": ["predict"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Predict - Invalid: empty body (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 422', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "pm.test('Every required field is reported missing', function () {",
+                  "    const json = pm.response.json();",
+                  "    const missing = json.detail",
+                  "        .filter((d) => d.type === 'missing')",
+                  "        .map((d) => d.loc[d.loc.length - 1]);",
+                  "    [",
+                  "        'year', 'WAR', 'R', 'H', 'HR', 'RBI', 'SB', 'BB',",
+                  "        'batting_avg', 'onbase_perc', 'slugging_perc', 'onbase_plus_slugging'",
+                  "    ].forEach((field) => {",
+                  "        pm.expect(missing).to.include(field);",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/predict",
+              "host": ["{{base_url}}"],
+              "path": ["predict"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
